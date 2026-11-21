@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PhoneCam</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden}
+canvas,video{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain;background:#000}
+[hidden]{display:none}
+</style></head>
+<body>
+<video id="vid" muted autoplay playsinline hidden></video>
+<canvas id="c" width="1920" height="1080" hidden></canvas>
+<script src="/jpeg.js"></script>
+<script src="/player.js"></script>
+<script src="/mse.js"></script>
+<script>
+/* Image seule, pour OBS (Source navigateur).
+   USB (localhost) : H.264 via WebCodecs (latence minimale).
+   WiFi : H.264 via Media Source (≈11 Mbit/s, décodage matériel) ; JPEG seulement en secours.
+   Forçable : ?src=jpeg | ?src=mse | ?src=h264 */
+(function () {
+  var cv = document.getElementById('c'), vid = document.getElementById('vid');
+  var want = new URLSearchParams(location.search).get('src');
+  var vport = location.port === '18090' ? 18091 : 8091;
+  function show(el) { cv.hidden = el !== cv; vid.hidden = el !== vid; }
+  function jpeg() { show(cv); initJpeg(cv, {}); }
+  function mse() { show(vid); initMse(vid, location.hostname, vport, { onFail: jpeg }); }
+  if (want === 'jpeg') jpeg();
+  else if (want !== 'mse' && window.isSecureContext && 'VideoDecoder' in window) {
+    show(cv); initPlayer(cv, location.hostname, vport, { onFail: mse });
+  } else mse();
+})();
+</script>
+</body></html>

@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="fr"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>PhoneCam Studio</title>
+<style>
+:root{
+  --bg:#15171A; --surface:#1F2226; --surface2:#2A2E34; --line:#353A41;
+  --text:#ECE8E1; --dim:#9A968E; --amber:#F0B43C; --amber-ink:#2A1D05;
+  --tally:#E8443A; --ok:#5FBF7F;
+  --f-ui:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --f-num:Bahnschrift,"DIN Alternate","Roboto Condensed","Arial Narrow",var(--f-ui);
+  --r-lg:16px; --r-md:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 var(--f-ui);-webkit-font-smoothing:antialiased;min-height:100vh}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+
+.app{max-width:1500px;margin:0 auto;padding:16px 20px 28px}
+
+/* ---------- en-tête */
+.top{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:11px;margin-right:auto;min-width:0}
+.brand svg{flex:none}
+.brand h1{margin:0;font:600 19px/1.1 var(--f-num);letter-spacing:.2px}
+.brand p{margin:2px 0 0;color:var(--dim);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tally{display:flex;align-items:center;gap:8px;padding:6px 13px 6px 11px;border-radius:999px;
+  background:var(--surface);border:1px solid var(--line);font-weight:600;font-size:13px;white-space:nowrap;color:var(--dim)}
+.lamp{width:9px;height:9px;border-radius:50%;background:var(--dim)}
+.tally[data-state=live]{color:var(--text);background:rgba(232,68,58,.14);border-color:rgba(232,68,58,.45)}
+.tally[data-state=live] .lamp{background:var(--tally);box-shadow:0 0 10px var(--tally);animation:blink 1.6s ease-in-out infinite}
+.tally[data-state=wait]{color:var(--text)}
+.tally[data-state=wait] .lamp{background:var(--amber)}
+.tally[data-state=off] .lamp{background:transparent;border:1.5px solid var(--dim)}
+@keyframes blink{50%{opacity:.35}}
+
+/* ---------- disposition */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+.compact .layout{grid-template-columns:minmax(0,1fr)}
+.compact .monitor{display:none}
+@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}}
+
+/* ---------- viseur */
+.vf{position:relative;aspect-ratio:16/9;background:#000;border-radius:var(--r-lg);overflow:hidden;
+  box-shadow:0 0 0 1px var(--line);transition:box-shadow .25s}
+.vf[data-live]{box-shadow:0 0 0 2px var(--tally),0 0 34px -8px rgba(232,68,58,.6)}
+.vf canvas,.vf video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
+.vf canvas[hidden],.vf video[hidden]{display:none}
+.vf:fullscreen{border-radius:0;box-shadow:none}
+.marks i{position:absolute;width:22px;height:22px;border:0 solid rgba(236,232,225,.55);pointer-events:none;transition:border-color .25s}
+.vf[data-live] .marks i{border-color:rgba(232,68,58,.85)}
+.marks i:nth-child(1){top:14px;left:14px;border-top-width:2px;border-left-width:2px}
+.marks i:nth-child(2){top:14px;right:14px;border-top-width:2px;border-right-width:2px}
+.marks i:nth-child(3){bottom:14px;left:14px;border-bottom-width:2px;border-left-width:2px}
+.marks i:nth-child(4){bottom:14px;right:14px;border-bottom-width:2px;border-right-width:2px}
+.grid{position:absolute;inset:0;pointer-events:none;
+  background:
+   linear-gradient(90deg,transparent calc(33.333% - .5px),rgba(255,255,255,.28) calc(33.333% - .5px),rgba(255,255,255,.28) calc(33.333% + .5px),transparent calc(33.333% + .5px),
+     transparent calc(66.666% - .5px),rgba(255,255,255,.28) calc(66.666% - .5px),rgba(255,255,255,.28) calc(66.666% + .5px),transparent calc(66.666% + .5px)),
+   linear-gradient(180deg,transparent calc(33.333% - .5px),rgba(255,255,255,.28) calc(33.333% - .5px),rgba(255,255,255,.28) calc(33.333% + .5px),transparent calc(33.333% + .5px),
+     transparent calc(66.666% - .5px),rgba(255,255,255,.28) calc(66.666% - .5px),rgba(255,255,255,.28) calc(66.666% + .5px),transparent calc(66.666% + .5px))}
+.osd{position:absolute;left:44px;right:44px;display:flex;gap:16px;font:500 13px/1 var(--f-num);color:rgba(236,232,225,.92);
+  text-shadow:0 1px 3px rgba(0,0,0,.9);pointer-events:none;font-variant-numeric:tabular-nums}
+.osd.top{top:20px}
+.osd.bottom{bottom:20px}
+.osd .end{margin-left:auto}
+.empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  text-align:center;padding:24px;background:#0f1012}
+.empty strong{font:600 18px/1.2 var(--f-num)}
+.empty span{color:var(--dim);max-width:44ch}
+.empty[hidden]{display:none}
+.tools{position:absolute;top:12px;right:48px;display:flex;gap:6px;opacity:0;transition:opacity .2s}
+.vf:hover .tools,.tools:focus-within{opacity:1}
+.tools button{width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:9px;cursor:pointer;
+  background:rgba(21,23,26,.72);backdrop-filter:blur(6px);color:var(--text)}
+.tools button:hover{background:rgba(42,46,52,.9)}
+.tools button[aria-pressed=true]{color:var(--amber)}
+@media (hover:none){.tools{opacity:1}}
+
+/* ---------- panneau de réglages */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+.group{padding:15px 18px 17px;border-top:1px solid var(--line)}
+.group:first-child{border-top:0}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px}
+.row:last-child,.row:has(+ [hidden]){margin-bottom:0}
+h2{margin:0;font-size:14px;font-weight:600}
+output{font:600 17px/1 var(--f-num);color:var(--amber);font-variant-numeric:tabular-nums}
+output.muted{color:var(--dim)}
+.hint{margin:9px 0 0;color:var(--dim);font-size:12.5px}
+
+.seg{display:flex;gap:3px;padding:3px;background:var(--surface2);border-radius:var(--r-md)}
+.seg button{flex:1;padding:7px 6px;border:0;border-radius:8px;background:transparent;color:var(--dim);cursor:pointer;font-weight:500}
+.seg button:hover{color:var(--text)}
+.seg button.on{background:var(--amber);color:var(--amber-ink);font-weight:600}
+.seg + input[type=range]{margin-top:16px}
+
+input[type=range]{-webkit-appearance:none;appearance:none;display:block;width:100%;height:22px;margin:0;background:transparent;cursor:pointer;--fill:50%}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;
+  background:linear-gradient(90deg,var(--amber) var(--fill),var(--surface2) var(--fill))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-7px;border-radius:50%;
+  background:var(--text);border:3px solid var(--amber);box-shadow:0 1px 6px rgba(0,0,0,.5)}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--surface2)}
+input[type=range]::-moz-range-progress{height:4px;border-radius:2px;background:var(--amber)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--text);border:3px solid var(--amber)}
+input[type=range]:disabled{opacity:.35;cursor:default}
+.scale{display:flex;justify-content:space-between;margin-top:5px;color:var(--dim);font:12px var(--f-num);font-variant-numeric:tabular-nums}
+
+.presets{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.presets button{flex:1;min-width:44px;padding:6px 0;border-radius:8px;border:1px solid var(--line);background:transparent;
+  font:500 13.5px var(--f-num);color:var(--dim);cursor:pointer}
+.presets button:hover{color:var(--text);border-color:var(--dim)}
+.presets button.on{color:var(--amber);border-color:var(--amber)}
+
+.switch{position:relative;width:46px;height:26px;flex:none;border:0;border-radius:999px;background:var(--surface2);cursor:pointer;transition:background .15s}
+.switch::after{content:"";position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:var(--dim);transition:transform .15s,background .15s}
+.switch[aria-checked=true]{background:var(--amber)}
+.switch[aria-checked=true]::after{transform:translateX(20px);background:var(--amber-ink)}
+.switch:disabled{opacity:.35;cursor:default}
+
+details.group summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-weight:600}
+details.group summary::-webkit-details-marker{display:none}
+details.group summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--dim);border-bottom:2px solid var(--dim);transform:rotate(45deg) translateY(-3px);transition:transform .2s}
+details[open].group summary::after{transform:rotate(-135deg) translateX(-2px)}
+.links{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.link{display:flex;align-items:center;gap:10px;padding:9px 10px 9px 12px;background:var(--surface2);border-radius:var(--r-md)}
+.link div{min-width:0;flex:1}
+.link b{display:block;font-weight:600;font-size:13px}
+.link code{display:block;color:var(--dim);font:12.5px var(--f-num);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.link button{border:0;background:transparent;color:var(--amber);font-weight:600;font-size:13px;cursor:pointer;padding:6px 4px}
+.cap{margin:12px 0 0;white-space:pre-wrap;color:var(--dim);font:12.5px/1.7 var(--f-num)}
+.keys{margin:12px 0 0;color:var(--dim);font-size:12.5px}
+kbd{font:600 11.5px var(--f-num);padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;color:var(--text)}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:var(--text);color:var(--bg);padding:9px 16px;border-radius:999px;font-weight:600;font-size:13px;transition:.2s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:520px){
+  .app{padding:12px 12px 22px}
+  .osd{left:16px;right:16px;font-size:12px;gap:10px}
+  .osd.top{top:12px}.osd.bottom{bottom:12px}
+  .marks{display:none}
+  .tools{right:10px;top:auto;bottom:34px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">
+        <circle cx="17" cy="17" r="14" fill="none" stroke="#ECE8E1" stroke-width="2.5"/>
+        <circle cx="17" cy="17" r="8.5" fill="none" stroke="#F0B43C" stroke-width="2"/>
+        <circle cx="17" cy="17" r="3.5" fill="#ECE8E1"/>
+        <circle cx="29" cy="5" r="3" fill="#E8443A"/>
+      </svg>
+      <div><h1>PhoneCam Studio</h1><p id="sub">Connexion au téléphone…</p></div>
+    </div>
+    <div class="tally" id="tally" data-state="off" role="status"><span class="lamp"></span><span id="tallyTxt">Connexion…</span></div>
+  </header>
+
+  <main class="layout">
+    <section class="monitor" aria-label="Aperçu">
+      <div class="vf" id="vf">
+        <video id="vid" muted autoplay playsinline hidden></video>
+        <canvas id="v" width="1920" height="1080"></canvas>
+        <div class="grid" id="grid" hidden></div>
+        <div class="marks" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div class="osd top"><span id="osdLens">Arrière</span><span id="osdSrc" class="end"></span></div>
+        <div class="osd bottom"><span id="osdRes">1920×1080</span><span id="osdFps"></span><span id="osdRate" class="end"></span></div>
+        <div class="empty" id="empty"><strong id="emptyTitle">Connexion…</strong><span id="emptyText">Recherche du téléphone sur le réseau.</span></div>
+        <div class="tools">
+          <button id="btnGrid" aria-pressed="false" title="Grille des tiers (G)" aria-label="Grille des tiers">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="1.5" width="15" height="15" rx="2"/><path d="M6.5 1.5v15M11.5 1.5v15M1.5 6.5h15M1.5 11.5h15"/></svg></button>
+          <button id="btnShot" title="Capturer une image (S)" aria-label="Capturer une image">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 6a2 2 0 0 1 2-2h1.5l1.5-2h4l1.5 2H14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"/><circle cx="9" cy="9.5" r="3"/></svg></button>
+          <button id="btnFull" title="Plein écran (F)" aria-label="Plein écran">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 6.5V2h4.5M11.5 2H16v4.5M16 11.5V16h-4.5M6.5 16H2v-4.5"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel" aria-label="Réglages">
+      <section class="group">
+        <div class="row"><h2>Exposition</h2><output id="evOut" class="muted">Auto</output></div>
+        <div class="seg" id="expMode"><button data-v="0" class="on">Auto</button><button data-v="1">Compensation</button></div>
+        <input type="range" id="ev" min="-20" max="20" step="1" value="0" disabled aria-label="Compensation d'exposition">
+        <div class="scale" id="evScale"><span>−2</span><span>0</span><span>+2</span></div>
+      </section>
+
+      <section class="group">
+        <div class="row"><h2>Zoom</h2><output id="zoomOut">×1,0</output></div>
+        <input type="range" id="zoom" min="0" max="1000" step="1" value="0" aria-label="Zoom">
+        <div class="presets" id="presets"></div>
+      </section>
+
+      <section class="group">
+        <div class="row"><h2>Objectif</h2></div>
+        <div class="seg" id="lens"><button data-v="back" class="on">Arrière</button><button data-v="front">Avant</button></div>
+      </section>
+
+      <section class="group">
+        <div class="row"><h2>Torche</h2><button class="switch" id="torch" role="switch" aria-checked="false" aria-label="Torche"></button></div>
+        <p class="hint" id="torchHint" hidden>Pas de torche sur l'objectif avant.</p>
+      </section>
+
+      <section class="group">
+        <div class="row"><h2>Qualité vidéo</h2><output id="qOut">78</output></div>
+        <input type="range" id="q" min="50" max="92" step="2" value="78" aria-label="Qualité vidéo">
+        <p class="hint" id="qHint"></p>
+      </section>
+
+      <details class="group" id="obs">
+        <summary>Brancher sur OBS</summary>
+        <div class="links" id="links"></div>
+      </details>
+
+      <details class="group">
+        <summary>Capteur et raccourcis</summary>
+        <div class="cap" id="cap">—</div>
+        <p class="keys"><kbd>G</kbd> grille <kbd>S</kbd> capture <kbd>F</kbd> plein écran <kbd>T</kbd> torche</p>
+      </details>
+    </aside>
+  </main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/jpeg.js"></script>
+<script src="/player.js"></script>
+<script src="/mse.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var params = new URLSearchParams(location.search);
+  var compact = params.has('compact');
+  var VPORT = location.port === '18090' ? 18091 : 8091;
+  var nf1 = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  if (compact) document.body.classList.add('compact');
+
+  /* ------------------------------------------------ envoi des réglages
+     Une requête à la fois ; pendant qu'elle part, seules les dernières valeurs sont gardées
+     → un slider glissé vite n'empile pas de retard. */
+  var queued = {}, sending = false, touched = {};
+  function send(o) {
+    for (var k in o) { queued[k] = o[k]; touched[k] = Date.now(); }
+    if (!sending) pump();
+  }
+  function pump() {
+    var keys = Object.keys(queued);
+    if (!keys.length) { sending = false; return; }
+    sending = true;
+    var p = new URLSearchParams();
+    keys.forEach(function (k) { p.set(k, queued[k]); delete queued[k]; });
+    fetch('/api/set?' + p, { cache: 'no-store' }).catch(function () {}).then(pump);
+  }
+  /** Le serveur ne réécrit pas un réglage que l'utilisateur vient de toucher. */
+  function settled(k) { return Date.now() - (touched[k] || 0) > 1500 && !(k in queued); }
+
+  function fill(r) { r.style.setProperty('--fill', (100 * (r.value - r.min) / ((r.max - r.min) || 1)) + '%'); }
+  function segSelect(seg, v) {
+    [].forEach.call(seg.querySelectorAll('button'), function (b) { b.classList.toggle('on', b.dataset.v === String(v)); });
+  }
+
+  /* ------------------------------------------------ exposition */
+  var ev = $('ev'), evStep = 0.1, manual = false;
+  function fmtEv(steps) {
+    var v = steps * evStep;
+    if (Math.abs(v) < 0.05) return '0 EV';
+    return (v > 0 ? '+' : '−') + nf1.format(Math.abs(v)) + ' EV';
+  }
+  function showExp() {
+    ev.disabled = !manual;
+    $('evOut').textContent = manual ? fmtEv(+ev.value) : 'Auto';
+    $('evOut').classList.toggle('muted', !manual);
+    segSelect($('expMode'), manual ? 1 : 0);
+    fill(ev);
+  }
+  $('expMode').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    manual = b.dataset.v === '1';
+    send({ manual: manual ? 1 : 0 }); showExp();
+  });
+  ev.addEventListener('input', function () { send({ ev: ev.value }); showExp(); });
+  ev.addEventListener('dblclick', function () { if (!manual) return; ev.value = 0; send({ ev: 0 }); showExp(); });
+
+  /* ------------------------------------------------ zoom (échelle logarithmique) */
+  var zoom = $('zoom'), zMin = 1, zMax = 8, zCur = 1;
+  function z2s(z) { return Math.round(1000 * Math.log(z / zMin) / Math.log(zMax / zMin)); }
+  function s2z(s) { return zMin * Math.pow(zMax / zMin, s / 1000); }
+  function showZoom() {
+    $('zoomOut').textContent = '×' + nf1.format(zCur);
+    zoom.value = z2s(zCur); fill(zoom);
+    [].forEach.call($('presets').children, function (b) { b.classList.toggle('on', Math.abs(+b.dataset.z - zCur) < 0.05); });
+  }
+  function buildPresets() {
+    var list = [zMin, 1, 2, 3, 5, 10, zMax].filter(function (z) { return z >= zMin - 1e-3 && z <= zMax + 1e-3; })
+      .map(function (z) { return Math.round(z * 10) / 10; })
+      .filter(function (z, i, a) { return a.indexOf(z) === i; }).sort(function (a, b) { return a - b; });
+    if (list.length > 6) list = list.filter(function (z) { return z !== 3; });
+    $('presets').innerHTML = '';
+    list.forEach(function (z) {
+      var b = document.createElement('button');
+      b.dataset.z = z; b.textContent = '×' + (z % 1 ? nf1.format(z) : z);
+      b.onclick = function () { zCur = z; send({ zoom: z.toFixed(2) }); showZoom(); };
+      $('presets').appendChild(b);
+    });
+  }
+  zoom.addEventListener('input', function () { zCur = s2z(+zoom.value); send({ zoom: zCur.toFixed(2) }); showZoom(); });
+  zoom.addEventListener('dblclick', function () { zCur = Math.max(zMin, 1); send({ zoom: zCur }); showZoom(); });
+
+  /* ------------------------------------------------ objectif, torche, qualité */
+  $('lens').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b || b.classList.contains('on')) return;
+    send({ cam: b.dataset.v }); segSelect($('lens'), b.dataset.v);
+    $('osdLens').textContent = b.dataset.v === 'back' ? 'Arrière' : 'Avant';
+    toast('Changement d’objectif…');
+  });
+  var torch = $('torch');
+  function setTorch(on) { torch.setAttribute('aria-checked', on ? 'true' : 'false'); }
+  torch.addEventListener('click', function () {
+    var on = torch.getAttribute('aria-checked') !== 'true';
+    setTorch(on); send({ torch: on ? 1 : 0 });
+  });
+  var q = $('q');
+  function mbps(qv) { return (3 + (qv - 50) * 0.3); }
+  function showQ() {
+    $('qOut').textContent = q.value;
+    $('qHint').textContent = 'Environ ' + nf1.format(mbps(+q.value)) + ' Mbit/s en H.264. Plus haut = plus net, mais plus lourd pour le WiFi.';
+    fill(q);
+  }
+  q.addEventListener('input', function () { send({ q: q.value }); showQ(); });
+
+  /* ------------------------------------------------ liens OBS */
+  function link(title, url) {
+    var d = document.createElement('div'); d.className = 'link';
+    d.innerHTML = '<div><b></b><code></code></div><button type="button">Copier</button>';
+    d.querySelector('b').textContent = title;
+    d.querySelector('code').textContent = url.replace(/^https?:\/\//, '');
+    d.querySelector('button').onclick = function () { copy(url); };
+    return d;
+  }
+  var origin = location.protocol + '//' + location.host;
+  $('links').append(
+    link('Source Navigateur (image)', origin + '/view'),
+    link('Source Média (H.264, qualité max)', 'http://' + location.hostname + ':' + VPORT + '/h264'),
+    link('Dock de réglages, sans aperçu', origin + '/?compact')
+  );
+  function copy(text) {
+    var done = function () { toast('Adresse copiée'); };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else fallback();
+    function fallback() {
+      var t = document.createElement('textarea'); t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select();
+      try { document.execCommand('copy'); done(); } catch (e) { toast(text); }
+      t.remove();
+    }
+  }
+  var toastTimer;
+  function toast(msg) {
+    var t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.remove('show'); }, 1800);
+  }
+
+  /* ------------------------------------------------ aperçu */
+  var cv = $('v'), vf = $('vf'), lastFrame = 0, frames = 0, fps = 0, src = '';
+  function onFrame() { lastFrame = performance.now(); frames++; }
+  setInterval(function () { fps = frames; frames = 0; }, 1000);
+  /* Source d'aperçu, de la plus réactive à la plus compatible :
+     WebCodecs (USB/localhost) → H.264 Media Source (WiFi, ~11 Mbit/s) → JPEG (secours, ~60 Mbit/s) */
+  var vid = $('vid'), shotEl = cv;
+  function showEl(el) { shotEl = el; cv.hidden = el !== cv; vid.hidden = el !== vid; }
+  function useJpeg() { src = 'Aperçu JPEG'; showEl(cv); initJpeg(cv, { onFrame: onFrame }); }
+  function useMse() { src = 'Aperçu H.264'; showEl(vid); initMse(vid, location.hostname, VPORT, { onFrame: onFrame, onFail: useJpeg }); }
+  if (!compact) {
+    var want = params.get('src');
+    if (want === 'jpeg') useJpeg();
+    else if (want !== 'mse' && window.isSecureContext && 'VideoDecoder' in window) {
+      src = 'Aperçu H.264 direct'; showEl(cv);
+      initPlayer(cv, location.hostname, VPORT, { onFrame: onFrame, onFail: useMse });
+    } else useMse();
+  }
+
+  $('btnGrid').onclick = function () {
+    var g = $('grid'); g.hidden = !g.hidden; this.setAttribute('aria-pressed', String(!g.hidden));
+  };
+  $('btnFull').onclick = function () {
+    if (document.fullscreenElement) document.exitFullscreen(); else vf.requestFullscreen && vf.requestFullscreen();
+  };
+  $('btnShot').onclick = function () {
+    if (!lastFrame) { toast('Aucune image à capturer'); return; }
+    var snap = cv;
+    if (shotEl === vid) {
+      snap = document.createElement('canvas');
+      snap.width = vid.videoWidth || 1920; snap.height = vid.videoHeight || 1080;
+      snap.getContext('2d').drawImage(vid, 0, 0, snap.width, snap.height);
+    }
+    snap.toBlob(function (b) {
+      var a = document.createElement('a'), d = new Date(), p = function (n) { return String(n).padStart(2, '0'); };
+      a.download = 'phonecam-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()) + '.png';
+      a.href = URL.createObjectURL(b); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+      toast('Image enregistrée');
+    }, 'image/png');
+  };
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var k = e.key.toLowerCase();
+    if (k === 'g' && !compact) $('btnGrid').click();
+    else if (k === 'f' && !compact) $('btnFull').click();
+    else if (k === 's' && !compact) $('btnShot').click();
+    else if (k === 't' && !torch.disabled) torch.click();
+  });
+
+  /* ------------------------------------------------ état du téléphone */
+  var info = null, reachable = false, fails = 0, ranged = '';
+  function applyInfo(j) {
+    info = j;
+    if (!j.running) return;
+    var rk = [j.evMin, j.evMax, j.evStep, j.zoomMin, j.zoomMax].join();
+    if (j.ready && rk !== ranged) {
+      ranged = rk;
+      if (j.evMin != null) {
+        ev.min = j.evMin; ev.max = j.evMax; evStep = j.evStep || 0.1;
+        var s = $('evScale').children;
+        s[0].textContent = fmtEv(j.evMin).replace(' EV', ''); s[2].textContent = fmtEv(j.evMax).replace(' EV', '');
+      }
+      if (j.zoomMin != null) { zMin = j.zoomMin; zMax = Math.max(j.zoomMax, zMin + 0.01); buildPresets(); }
+      zoom.disabled = j.zoomMin == null;
+    }
+    if (settled('manual')) manual = !!j.manual;
+    if (settled('ev')) ev.value = j.ev;
+    showExp();
+    if (settled('zoom')) zCur = j.zoom;
+    showZoom();
+    if (settled('cam')) {
+      segSelect($('lens'), j.facing);
+      $('osdLens').textContent = j.facing === 'back' ? 'Arrière' : 'Avant';
+    }
+    if (settled('torch')) setTorch(!!j.torchOn);
+    torch.disabled = j.ready && !j.torchAvail;
+    $('torchHint').hidden = !(j.ready && !j.torchAvail);
+    if (settled('q')) q.value = j.q;
+    showQ();
+    $('osdRes').textContent = j.w + '×' + j.h;
+    $('osdRate').textContent = nf1.format(j.bitrateKbps / 1000) + ' Mbit/s';
+    if (j.cap) $('cap').textContent = j.cap;
+  }
+  function poll() {
+    fetch('/api/info', { cache: 'no-store' }).then(function (r) { return r.json(); })
+      .then(function (j) { reachable = true; fails = 0; applyInfo(j); })
+      .catch(function () { if (++fails >= 2) reachable = false; })
+      .then(function () { render(); setTimeout(poll, 1000); });
+  }
+
+  function render() {
+    var now = performance.now();
+    var flowing = !compact && lastFrame && now - lastFrame < 1500;
+    var state, label, title = '', text = '';
+    if (!reachable) {
+      state = 'off'; label = 'Téléphone injoignable';
+      title = 'Téléphone injoignable';
+      text = 'Vérifie que l’appli PhoneCam est ouverte et que le PC est sur le même WiFi (ou que PhoneCam-USB.bat tourne).';
+    } else if (!info || !info.running) {
+      state = 'off'; label = 'Stream arrêté';
+      title = 'Stream arrêté'; text = 'Lance le stream depuis l’appli du téléphone : l’image apparaîtra ici.';
+    } else if (!info.ready) {
+      state = 'wait'; label = 'Démarrage…';
+      title = 'Ouverture de la caméra…'; text = info.status || '';
+    } else if (compact || flowing) {
+      state = 'live'; label = 'En direct';
+    } else {
+      state = 'wait'; label = 'Connexion au flux…';
+      title = 'Connexion au flux…'; text = 'L’image arrive dans un instant.';
+    }
+    $('tally').dataset.state = state;
+    $('tallyTxt').textContent = label;
+    $('sub').textContent = reachable ? location.host : 'Connexion au téléphone…';
+    if (state === 'live') vf.setAttribute('data-live', ''); else vf.removeAttribute('data-live');
+    var empty = $('empty');
+    empty.hidden = !!flowing && state === 'live';
+    $('emptyTitle').textContent = title; $('emptyText').textContent = text;
+    $('osdSrc').textContent = flowing ? src : '';
+    $('osdFps').textContent = flowing ? fps + ' i/s' : '';
+  }
+  setInterval(render, 500);
+  [ev, zoom, q].forEach(fill);
+  showQ(); buildPresets(); showZoom();
+  poll();
+})();
+</script>
+</body></html>

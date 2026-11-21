@@ -1,0 +1,28 @@
+# Gradle / Kotlin
+.gradle/
+.kotlin/
+build/
+app/build/
+
+# Machine locale (chemin du SDK)
+local.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Système
+.DS_Store
+Thumbs.db
+
+# Signatures
+*.jks
+*.keystore
+
+# Notes personnelles (non publiées)
+*.local.md
+
+# Signature des versions publiées
+signing/
+keystore.properties
