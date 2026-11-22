@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="22 22 64 64">
+<!-- même dessin que l'icône de l'appli (res/drawable/ic_launcher_fg.xml) -->
+<rect x="22" y="22" width="64" height="64" rx="14" fill="#15171A"/>
+<circle cx="54" cy="54" r="24" fill="none" stroke="#ECE8E1" stroke-width="5"/>
+<circle cx="54" cy="54" r="15" fill="none" stroke="#F0B43C" stroke-width="3"/>
+<circle cx="54" cy="54" r="7" fill="#ECE8E1"/>
+<circle cx="74" cy="33" r="5" fill="#E8443A"/>
+</svg>

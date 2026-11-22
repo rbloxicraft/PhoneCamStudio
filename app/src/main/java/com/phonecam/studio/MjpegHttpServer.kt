@@ -172,7 +172,7 @@ class MjpegHttpServer(private val port: Int) {
             }
             "/", "/index.html" -> asset(out, "control.html")
             "/view" -> asset(out, "view.html")
-            "/favicon.ico" -> respond(out, 204, "image/x-icon", ByteArray(0))
+            "/favicon.ico" -> asset(out, "favicon.svg")
             else -> {
                 val name = path.removePrefix("/")
                 if (name.matches(Regex("[a-z0-9_-]+\\.(js|css|svg)"))) asset(out, name)

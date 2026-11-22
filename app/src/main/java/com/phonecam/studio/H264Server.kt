@@ -128,6 +128,7 @@ class H264Server(private val port: Int) {
                     serveWebSocket(client, input, headers)
                 path == "/h264" -> serveRawStream(client)
                 path == "/player.js" -> serveAsset(client, "player.js")
+                path == "/favicon.svg" || path == "/favicon.ico" -> serveAsset(client, "favicon.svg")
                 else -> serveAsset(client, "h264view.html")
             }
         } catch (e: Exception) {
